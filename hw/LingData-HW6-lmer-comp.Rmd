@@ -25,12 +25,12 @@ In this dataset we have number of consonants and vowels in 402 languages collect
 
 ```{r, warning=FALSE, message=FALSE}
 upsid <- read_csv("https://raw.githubusercontent.com/LingData2019/LingData2020/master/data/upsid.csv")
-upsid
+head(upsid)
 ```
 
 ```{r}
 # you can map the languages using the lingtypology package
-# map.feature(upsid$language, 
+# map.feature(upsid$language,
 #            features = upsid$area,
 #            label = upsid$language,
 #            label.hide = TRUE)
@@ -43,6 +43,9 @@ In this work, you will fit a number of linear and linear mixed-effect models tha
 ### 1.1 
 Make a scatterplot of the number of consonants and the number of vowels using the `ggplot()`.   
 ```{r 1.1, echo = FALSE}
+ggplot(upsid, aes(x = consonants, y = vowels)) +
+  theme_bw() +
+  geom_point() 
 
 ```
 
@@ -52,13 +55,14 @@ Make a scatterplot of the number of consonants and the number of vowels using th
 ### 1.2
 Fit the basic linear model `fit1` that predicts the number of vowels by the number of consonants. Look at the summary of the model.
 ```{r 1.2, include=FALSE}
-# fit1 <- lm(...)
+fit1 <- lm(vowels ~ consonants, data = upsid)
+summary(fit1)
 ```
 
 ### 1.3
 Is `consonants` a significant predictor? Write down YES or NO.
 ```{1.3}
-
+YES
 ```
 
 ### 1.4
@@ -81,9 +85,10 @@ head(augment(fit1))
 Use one of these function to add a line to the scatterplot 1.1. You have to use `geom_line` and pass the result of `augment` or `fortify` as argument `data` in `geom_line`. (E.g. `geom_line(data = <result of augment>, ...`))
 
 ```{r 1.5, echo=FALSE}
-
-#
-#  geom_line(data = augment(fit1), aes(x = consonants, y = .fitted), color = "blue")
+ggplot(upsid, aes(x = consonants, y = vowels)) + 
+  geom_point() +
+  theme_bw() + 
+  geom_line(data = augment(fit1), aes(x = consonants, y = .fitted), color = "blue")
 ```
 
 ## 2. Mixed-effect models
@@ -92,9 +97,10 @@ Let us look at the data with respect to the `area` groups.
 ### 2.1
 Re-build the scatterplot `1.1` coloring the points by `area`.
 ```{r 2.1, echo=FALSE}
-
-
-# you can also draw stat_ellipse()
+ggplot(upsid, aes(x = consonants, y = vowels, color = area)) + 
+  geom_point() +
+  theme_bw() +
+  stat_ellipse()
 ```
 
 ### 2.2
@@ -102,22 +108,27 @@ Use lmer() to fit the model `fit2` with random `area` group intercept. Your mode
 
 $$vowels = \beta_0 + \beta_1 \times consonants + u(area).$$
 ```{r 2.2, include=FALSE}
-
-
+fit2 <- lmer(vowels ~ consonants + (1|area), data = upsid, REML = FALSE)
+summary(fit2)
 ```
 
 
 ### 2.3
 Add the regression lines to the scatterplot `2.1` using `fortify` or `augment` methods.
 ```{r 2.3, echo=FALSE}
-
+ggplot(upsid, aes(x = consonants, y = vowels, color = area)) + 
+  geom_point() +
+  theme_bw() +
+  geom_line(data = augment(fit2), aes(x = consonants, y = .fitted, color = area), size = 1.3) # thicker lines
 
 ```
+
 
 ### 2.4
 Interpret the results of the model. (Use `summary()` to get information about your model.) Is _consonansts_ variable still significant? How it changes after we added _area_ random effect? What can you say about lines on the graph? How are they located with respect to each other? Why?
 
 ```{2.4}
+The consonants variable is still significant. After adding area random effect its value has decreased, while p-value has increased. The lines are parallel. They are located at a different height. Each line has different intercept corresponding to the group it belongs to.
 
 ```
 
@@ -130,21 +141,25 @@ $$vowels = \beta_0 + (\beta_1 + u(area))\times consonants.$$
 You can consult [this](http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification) manual to choose the correct syntax in your `lmer` formula.
 
 ```{r 3.1, include=FALSE}
-
+fit3 <- lmer(vowels ~ consonants + (0 + consonants|area), data = upsid, REML = FALSE)
+summary(fit3)
 ```
 
 ### 3.2
 Draw a figure with prediction lines:
 
 ```{r 3.2, echo=FALSE}
-
+ggplot(upsid, aes(x = consonants, y = vowels, color = area)) + 
+  geom_point() +
+  theme_bw() +
+  geom_line(data = augment(fit3), aes(x = consonants, y = .fitted, color = area), size = 1.2)
 ```
 
 ### 3.3
-Interpret the results. Is _constants_ still significant? Why? What can you say about lines on the graph? How are they located with respect to each other? Why?
+Interpret the results. Is _consonansts_ still significant? Why? What can you say about lines on the graph? How are they located with respect to each other? Why?
 
 ```{3.3}
-
+Consonants is no longer significant. I think it's beacause random variable affects the slope for each group now (i.e. specific area). Evidently, the area has more effect on the target varibale than the number of consonants. The lines are no longer parallel. Again, this is becaused the random effect is applied to the slope now.The lines also seem to have one starting point which can be explained by the fact that they have the same intercept.
 ```
 
 ## 4. Mixed-effect models with random intercept and random slopes.
@@ -156,19 +171,23 @@ $$vowels = \beta_0 + u_1(area) + (\beta_1 + u_2(area))\times consonants.$$
 Fit the model `fit4`.
 
 ```{r 4.1, include=FALSE}
-
+fit4 <- lmer(vowels ~ consonants + (0 + consonants|area) + (1|area), data = upsid, REML = FALSE)
+summary(fit4)
 ```
 
 ### 4.2
 Draw a figure with predictions:  
 
 ```{r 4.2, echo=FALSE}
-
+ggplot(upsid, aes(x = consonants, y = vowels, color = area)) + 
+  geom_point() +
+  theme_bw() +
+  geom_line(data = augment(fit4), aes(x = consonants, y = .fitted, color = area), size = 1.2)
 ```
 
 ### 4.3
-Interpret the results. Is _constants_ significant? How can we interpret the difference between the prediction lines of these three models?
+Interpret the results. Is _consonansts_ significant? How can we interpret the difference between the prediction lines of these three models?
 
 ```{4.3}
-
+Consonants is not significant in this model. The difference between prediction lines in the models can be explained by the fact that random effect is applied to intercept, slope, and both at the same time. The result of the first model may mean that there is a certain minimal amount of vowels in languages that depends on the area. In the second model we can say that the amount of consonant affects the amount of vowels in a different way (i.e. to a different degree) depending on the area. And the third model combines these two approaches which, in theory, should provide the best fit.
 ```
